@@ -1,0 +1,8 @@
+{
+  "name": "text-formatter-rust",
+  "version": "1.0.0",
+  "scripts": {
+    "build": "wasm-pack build .",
+    "prepare": "wasm-pack build ."
+  }
+}

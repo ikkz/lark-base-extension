@@ -1,6 +1,14 @@
 {
   "folders": [
     {
+      "name": "text-formatter-web",
+      "path": "apps/text-formatter-web/"
+    },
+    {
+      "name": "text-formatter-rust",
+      "path": "packages/text-formatter-rust"
+    },
+    {
       "name": "monorepo",
       "path": "."
     }
