@@ -1,4 +1,5 @@
 import { Helmet } from '@modern-js/runtime/head';
+import { greet } from 'text-formatter-rust/pkg/text_formatter_rust';
 import './index.css';
 
 const Index = () => (
@@ -19,6 +20,7 @@ const Index = () => (
           alt="Modern.js Logo"
         />
         <p className="name">Modern.js</p>
+        <button onClick={greet}>Alert</button>
       </div>
       <p className="description">
         Get started by editing <code className="code">src/routes/page.tsx</code>

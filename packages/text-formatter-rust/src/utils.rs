@@ -8,3 +8,18 @@ pub fn set_panic_hook() {
     #[cfg(feature = "console_error_panic_hook")]
     console_error_panic_hook::set_once();
 }
+
+pub fn vec_to_option<T>(vec: Vec<T>) -> Option<Vec<T>> {
+    if vec.is_empty() {
+        None
+    } else {
+        Some(vec)
+    }
+}
+
+pub fn byte_range_to_char_range(text: &str, byte_range: (usize, usize)) -> (usize, usize) {
+    (
+        utf8_slice::len(&text[0..byte_range.0]),
+        utf8_slice::len(&text[0..byte_range.1]),
+    )
+}
