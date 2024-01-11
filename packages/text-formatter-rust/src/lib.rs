@@ -4,8 +4,20 @@ mod utils;
 
 use crate::utils::set_panic_hook;
 
+#[cfg(feature = "parallel")]
+use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
+
+#[cfg(feature = "rayon")]
+fn iter(text_list: &[String]) -> impl ParallelIterator<Item = &String> {
+    text_list.par_iter()
+}
+
+#[cfg(not(feature = "rayon"))]
+fn iter(text_list: &[String]) -> impl Iterator<Item = &String> {
+    text_list.iter()
+}
 
 #[derive(Serialize, Deserialize)]
 struct TestResult {
@@ -20,9 +32,13 @@ pub fn test(text_list: &str, config: &str) -> String {
     let rules = config::build_rules(config);
     serde_json::to_string(&TestResult {
         configs: rules.iter().map(|r| r.id().into()).collect::<Vec<_>>(),
-        results: text_list
-            .iter()
-            .map(|text| rules.iter().map(|rule| rule.test(text)).collect::<Vec<_>>())
+        results: iter(&text_list)
+            .map(|text| {
+                rules
+                    .iter()
+                    .map(|rule| rule.test(&text))
+                    .collect::<Vec<_>>()
+            })
             .collect::<Vec<_>>(),
     })
     .unwrap()
@@ -41,8 +57,7 @@ pub fn fix(text_list: &str, config: &str) -> String {
     let rules = config::build_rules(config);
     serde_json::to_string(&FixResult {
         configs: rules.iter().map(|r| r.id().into()).collect::<Vec<_>>(),
-        results: text_list
-            .iter()
+        results: iter(&text_list)
             .map(|text| {
                 rules
                     .iter()
@@ -52,6 +67,9 @@ pub fn fix(text_list: &str, config: &str) -> String {
     })
     .unwrap()
 }
+
+#[cfg(feature = "parallel")]
+pub use wasm_bindgen_rayon::init_thread_pool;
 
 #[cfg(test)]
 mod tests {
