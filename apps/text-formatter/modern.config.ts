@@ -5,5 +5,8 @@ export default defineConfig({
   runtime: {
     router: true,
   },
+  output: {
+    copy: [{ from: './node_modules/comlink/dist/umd/comlink.min.js', to: '' }],
+  },
   plugins: [appTools()],
 });

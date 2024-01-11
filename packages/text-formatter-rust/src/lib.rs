@@ -1,7 +1,6 @@
 mod config;
 mod rules;
 mod utils;
-
 use crate::utils::set_panic_hook;
 
 #[cfg(feature = "parallel")]
@@ -20,19 +19,25 @@ fn iter(text_list: &[String]) -> impl Iterator<Item = &String> {
 }
 
 #[derive(Serialize, Deserialize)]
+struct Param {
+    config: config::Config,
+    texts: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize)]
 struct TestResult {
-    configs: Vec<String>,
-    results: Vec<Vec<Option<Vec<(usize, usize)>>>>,
+    config: Vec<String>,
+    result: Vec<Vec<Option<Vec<(usize, usize)>>>>,
 }
 
 #[wasm_bindgen]
-pub fn test(text_list: &str, config: &str) -> String {
+pub fn test(param: &str) -> String {
     set_panic_hook();
-    let text_list: Vec<String> = serde_json::from_str(text_list).unwrap();
+    let Param { config, texts } = serde_json::from_str(param).unwrap();
     let rules = config::build_rules(config);
-    serde_json::to_string(&TestResult {
-        configs: rules.iter().map(|r| r.id().into()).collect::<Vec<_>>(),
-        results: iter(&text_list)
+    let result = serde_json::to_string(&TestResult {
+        config: rules.iter().map(|r| r.id().into()).collect::<Vec<_>>(),
+        result: iter(&texts)
             .map(|text| {
                 rules
                     .iter()
@@ -41,23 +46,24 @@ pub fn test(text_list: &str, config: &str) -> String {
             })
             .collect::<Vec<_>>(),
     })
-    .unwrap()
+    .unwrap();
+    result
 }
 
 #[derive(Serialize, Deserialize)]
 struct FixResult {
-    configs: Vec<String>,
-    results: Vec<String>,
+    config: Vec<String>,
+    result: Vec<String>,
 }
 
 #[wasm_bindgen]
-pub fn fix(text_list: &str, config: &str) -> String {
+pub fn fix(param: &str) -> String {
     set_panic_hook();
-    let text_list: Vec<String> = serde_json::from_str(text_list).unwrap();
+    let Param { config, texts } = serde_json::from_str(param).unwrap();
     let rules = config::build_rules(config);
-    serde_json::to_string(&FixResult {
-        configs: rules.iter().map(|r| r.id().into()).collect::<Vec<_>>(),
-        results: iter(&text_list)
+    let result = serde_json::to_string(&FixResult {
+        config: rules.iter().map(|r| r.id().into()).collect::<Vec<_>>(),
+        result: iter(&texts)
             .map(|text| {
                 rules
                     .iter()
@@ -65,7 +71,8 @@ pub fn fix(text_list: &str, config: &str) -> String {
             })
             .collect::<Vec<_>>(),
     })
-    .unwrap()
+    .unwrap();
+    result
 }
 
 #[cfg(feature = "parallel")]
@@ -77,33 +84,27 @@ mod tests {
 
     #[test]
     fn test_test() {
-        let text_list = r#"["leo你好, world! 10 %", "123.456"]"#;
-        let config = r#"
-            {
-                "no_space_around_full_width_punctuation": true,
-                "no_space_between_num_dp": true,
-                "space_between_ch_en": true,
-                "uniform_punctuation": true
-            }
-        "#;
-        let result = test(text_list, config);
-        let expected_result = "{\"configs\":[\"space_between_ch_en\",\"no_space_between_num_dp\",\"uniform_punctuation\",\"no_space_around_full_width_punctuation\"],\"results\":[[[[2,4]],[[16,17]],[[5,6],[12,13]],null],[null,null,null,null]]}";
+        let result = test(
+            r#"{"texts":["leo你好, world! 10 %", "123.456"],"config":{
+            "no_space_around_full_width_punctuation": true,
+            "no_space_between_num_dp": true,
+            "space_between_ch_en": true,
+            "uniform_punctuation": true
+        }}"#,
+        );
+        let expected_result = "{\"config\":[\"space_between_ch_en\",\"no_space_between_num_dp\",\"uniform_punctuation\",\"no_space_around_full_width_punctuation\"],\"result\":[[[[2,4]],[[16,17]],[[5,6],[12,13]],null],[null,null,null,null]]}";
         assert_eq!(result, expected_result);
     }
 
     #[test]
     fn test_fix() {
-        let text_list = r#"["leo你好, world! 10 %", "123.456"]"#;
-        let config = r#"
-            {
-                "no_space_around_full_width_punctuation": true,
-                "no_space_between_num_dp": true,
-                "space_between_ch_en": true,
-                "uniform_punctuation": true
-            }
-        "#;
-        let result = fix(text_list, config);
-        let expected_result = "{\"configs\":[\"space_between_ch_en\",\"no_space_between_num_dp\",\"uniform_punctuation\",\"no_space_around_full_width_punctuation\"],\"results\":[\"leo 你好，world！10%\",\"123.456\"]}";
+        let result = fix(r#"{"texts":["leo你好, world! 10 %", "123.456"],"config":{
+            "no_space_around_full_width_punctuation": true,
+            "no_space_between_num_dp": true,
+            "space_between_ch_en": true,
+            "uniform_punctuation": true
+        }}"#);
+        let expected_result = "{\"config\":[\"space_between_ch_en\",\"no_space_between_num_dp\",\"uniform_punctuation\",\"no_space_around_full_width_punctuation\"],\"result\":[\"leo 你好，world！10%\",\"123.456\"]}";
         assert_eq!(result, expected_result);
     }
 }

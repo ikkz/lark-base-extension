@@ -3,15 +3,14 @@ use serde::{Deserialize, Serialize};
 use std::convert::identity;
 
 #[derive(Serialize, Deserialize)]
-struct Config {
+pub(crate) struct Config {
     no_space_around_full_width_punctuation: Option<bool>,
     no_space_between_num_dp: Option<bool>,
     space_between_ch_en: Option<bool>,
     uniform_punctuation: Option<bool>,
 }
 
-pub(crate) fn build_rules(config: &str) -> Vec<Box<dyn Rule>> {
-    let config: Config = serde_json::from_str(config).unwrap();
+pub(crate) fn build_rules(config: Config) -> Vec<Box<dyn Rule>> {
     let mut rules: Vec<Box<dyn Rule>> = vec![];
     let mut register = |rule: Box<dyn Rule>| {
         rules.push(rule);
