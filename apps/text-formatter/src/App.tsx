@@ -1,3 +1,11 @@
+import '@/i18n';
+import { Sider } from '@/components/sider';
+import './index.css';
+
 export default () => {
-  return <button>Click me</button>;
+  return (
+    <div>
+      <Sider />
+    </div>
+  );
 };
