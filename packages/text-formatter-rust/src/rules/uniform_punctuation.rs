@@ -1,4 +1,4 @@
-use crate::utils::vec_to_option;
+use crate::utils::{byte_range_to_char_range, vec_to_option};
 
 use super::*;
 use lazy_static::*;
@@ -10,7 +10,6 @@ lazy_static! {
         ('！', '!'),
         ('？', '?'),
         ('；', ';'),
-        ('、', ','),
         ('：', ':'),
     ];
     static ref CH_PUNCTUATIONS_REGEX: regex::Regex = regex::Regex::new(&format!(
