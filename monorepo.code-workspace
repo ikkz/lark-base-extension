@@ -5,8 +5,8 @@
       "path": "packages/text-formatter-rust"
     },
     {
-      "name": "text-formatter-web",
-      "path": "apps/text-formatter-web/"
+      "name": "text-formatter",
+      "path": "apps/text-formatter/"
     },
     {
       "name": "monorepo",

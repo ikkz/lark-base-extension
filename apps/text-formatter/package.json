@@ -1,5 +1,5 @@
 {
-  "name": "text-formatter-web",
+  "name": "text-formatter",
   "version": "0.1.0",
   "scripts": {
     "reset": "npx rimraf ./**/node_modules",
