@@ -13,6 +13,13 @@ export interface Config {
   uniform_punctuation?: boolean;
 }
 
+export const CONFIG_LIST = [
+  'space_between_ch_en',
+  'no_space_between_num_dp',
+  'uniform_punctuation',
+  'no_space_around_full_width_punctuation',
+];
+
 export interface Param {
   config: Config;
   texts: string[];
@@ -23,9 +30,11 @@ export interface FixResult {
   result: string[];
 }
 
+export type TestResultItem = Array<[number, number]> | null;
+
 export interface TestResult {
   config: (keyof Config)[];
-  result: Array<Array<[number, number]> | null>[];
+  result: Array<TestResultItem>[];
 }
 
 export const DEFAULT_CONFIG: Config = {

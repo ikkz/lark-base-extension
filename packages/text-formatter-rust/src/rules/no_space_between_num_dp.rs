@@ -3,8 +3,8 @@ use super::*;
 pub(crate) fn build_rule() -> RegexRule {
     RegexRule::new(
         "no_space_between_num_dp",
-        vec![r"\d+(?<h>\s+)[°%]"],
-        vec![(r"(?<n>\d+)\s+(?<u>[°%])", "$n$u")],
+        vec![r"\d+(?<h>\x20+)[°%]"],
+        vec![(r"(?<n>\d+)\x20+(?<u>[°%])", "$n$u")],
     )
 }
 

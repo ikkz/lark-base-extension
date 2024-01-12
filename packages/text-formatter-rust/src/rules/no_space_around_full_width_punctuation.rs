@@ -6,12 +6,12 @@ pub(crate) fn build_rule() -> RegexRule {
     RegexRule::new(
         "no_space_around_full_width_punctuation",
         vec![
-            &format!(r"[{}](?<h>\s+)", PUNCTUATIONS),
-            &format!(r"(?<h>\s+)[{}]", PUNCTUATIONS),
+            &format!(r"[{}](?<h>\x20+)", PUNCTUATIONS),
+            &format!(r"(?<h>\x20+)[{}]", PUNCTUATIONS),
         ],
         vec![
-            (&format!(r"(?<p>[{}])(?<s>\s+)", PUNCTUATIONS), "$p"),
-            (&format!(r"(?<s>\s+)(?<p>[{}])", PUNCTUATIONS), "$p"),
+            (&format!(r"(?<p>[{}])(?<s>\x20+)", PUNCTUATIONS), "$p"),
+            (&format!(r"(?<s>\x20+)(?<p>[{}])", PUNCTUATIONS), "$p"),
         ],
     )
 }
