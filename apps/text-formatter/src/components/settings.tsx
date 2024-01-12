@@ -10,7 +10,7 @@ import { Config } from '@/api';
 export const Settings = () => {
   const mode = useObservableEagerState(mode$);
   return (
-    <div>
+    <>
       <div className="flex mb-4">
         <div className="text-sm leading-4 pr-4 shrink-0">格式化范围</div>
         <RadioGroup
@@ -37,7 +37,7 @@ export const Settings = () => {
           <RuleCheckBox ruleKey="no_space_between_num_dp" />
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
