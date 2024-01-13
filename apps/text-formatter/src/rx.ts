@@ -138,3 +138,7 @@ selection$.subscribe(cell => {
     });
   }
 });
+
+export type SelectionInfo = NonNullable<
+  typeof selection$ extends Observable<infer T> ? T : never
+>;

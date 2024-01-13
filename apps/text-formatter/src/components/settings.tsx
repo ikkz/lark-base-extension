@@ -14,18 +14,18 @@ export const Settings = () => {
   const { t } = useTranslation();
   return (
     <Form>
-      <Form.Item label="格式化范围">
+      <Form.Item label={t('format_target')}>
         <RadioGroup
           value={mode}
           onChange={mode => mode$.next(mode as Mode)}
           className="pr-4"
           direction="vertical"
         >
-          <Radio value="cell">选中单元格</Radio>
-          <Radio value="field">选中列</Radio>
+          <Radio value="cell">{t('cell')}</Radio>
+          <Radio value="field">{t('field')}</Radio>
         </RadioGroup>
       </Form.Item>
-      <Form.Item label="格式化规则">
+      <Form.Item label={t('format_rule')}>
         <CheckboxGroup
           options={CONFIG_LIST.map((rule, i) => ({
             value: rule,

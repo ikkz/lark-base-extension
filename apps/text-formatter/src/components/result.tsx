@@ -1,6 +1,6 @@
 import { useObservable, useObservableState } from 'observable-hooks';
 import {
-  Observable,
+  BehaviorSubject,
   combineLatestWith,
   filter,
   from,
@@ -14,6 +14,7 @@ import {
   checkers,
   IOpenSegmentType,
   bitable,
+  IOpenCellValue,
 } from '@lark-base-open/js-sdk';
 import type { AsyncReturnType } from 'type-fest';
 import { FC, useMemo } from 'react';
@@ -21,11 +22,12 @@ import { useTranslation } from 'react-i18next';
 import groupBy from 'lodash-es/groupBy';
 import sortBy from 'lodash-es/sortBy';
 import { identity } from 'lodash-es';
-import { Table, Button } from '@arco-design/web-react';
+import { Table, Button, Message } from '@arco-design/web-react';
 import { ColumnProps } from '@arco-design/web-react/es/Table';
 import { SegmentRender } from './segment-render';
-import { config$, mode$, selection$ } from '@/rx';
-import { TestResult, test } from '@/api';
+import { Mode, SelectionInfo, config$, mode$, selection$ } from '@/rx';
+import { Config, fix, test } from '@/api';
+import i18n from '@/i18n';
 
 type FieldValue = AsyncReturnType<IField['getFieldValueList']>[number];
 
@@ -41,37 +43,113 @@ function transformValues(values: FieldValue[]) {
   });
 }
 
+async function formatTest(
+  selection: SelectionInfo,
+  mode: Mode,
+  config: Config,
+) {
+  refreshing$.next(true);
+  const startTime = Date.now();
+  const fieldValues = await (mode === 'cell'
+    ? selection.table
+        .getCellValue(selection.fieldId, selection.recordId)
+        .then(value => [{ record_id: selection.recordId, value }])
+    : selection.field.getFieldValueList(''));
+
+  const transformedValues = transformValues(fieldValues);
+
+  const testResult = await test({
+    config,
+    texts: transformedValues.map(({ text }) => text),
+  });
+
+  console.log(`formatTest: ${Date.now() - startTime}ms`);
+  refreshing$.next(false);
+  return {
+    config: testResult.config,
+    result: Object.entries(
+      groupBy(
+        testResult.result
+          .map((rulesResult, index) => ({
+            rulesResult,
+            ...transformedValues[index],
+          }))
+          .filter(({ rulesResult }) => rulesResult.some(identity)),
+        'record_id',
+      ),
+    ).map(
+      ([recordId, items]) =>
+        ({ recordId, segments: sortBy(items, 'index') } as const),
+    ),
+  };
+}
+
+async function fixCells(
+  { table, field, fieldId }: SelectionInfo,
+  config: (keyof Config)[],
+  key: 'ALL' | string,
+) {
+  const close = Message.loading({
+    duration: 60 * 60 * 1000,
+    content: i18n.t('fixing'),
+  });
+  const fieldValues = await (key !== 'ALL'
+    ? table
+        .getCellValue(fieldId, key)
+        .then(value => [{ record_id: key, value }])
+    : field.getFieldValueList(''));
+  const transformedValues = transformValues(fieldValues);
+  const { result } = await fix({
+    config: Object.fromEntries(config.map(rule => [rule, true])) as Config,
+    texts: transformedValues.map(({ text }) => text),
+  });
+  const fieldValuesMap: Record<string, IOpenCellValue | undefined> =
+    Object.fromEntries(
+      fieldValues.map(({ record_id, value }) => [record_id, value]),
+    );
+  const updateMap: Record<string, boolean> = {};
+
+  result.forEach((fixed, index) => {
+    if (fixed !== transformedValues[index].text) {
+      const segments = fieldValuesMap[transformedValues[index].record_id];
+      if (segments && checkers.isSegments(segments)) {
+        segments[transformedValues[index].index].text = fixed;
+      }
+      updateMap[transformedValues[index].record_id] = true;
+    }
+  });
+  await Promise.all(
+    Object.keys(updateMap).map(recordId => {
+      if (updateMap[recordId]) {
+        const fieldValue = fieldValuesMap[recordId];
+        if (fieldValue) {
+          return field.setValue(recordId, fieldValue);
+        }
+      }
+      return Promise.resolve();
+    }),
+  );
+  close();
+  refresh$.next(Date.now());
+}
+
+type FormatTestResult = AsyncReturnType<typeof formatTest>;
+
+const refresh$ = new BehaviorSubject<number>(0);
+const refreshing$ = new BehaviorSubject<boolean>(false);
+
 export const Result = () => {
   return useObservableState(
     useObservable(() =>
       selection$.pipe(
         skip(1),
         filter(sel => Boolean(sel) && sel?.fieldType === FieldType.Text),
-        combineLatestWith(mode$, config$),
+        combineLatestWith(mode$, config$, refresh$),
         switchMap(([sel, mode, config]) => {
-          return from(
-            mode === 'cell'
-              ? sel!.table
-                  .getCellValue(sel!.fieldId, sel!.recordId)
-                  .then(value => [{ record_id: sel!.recordId, value }])
-              : sel!.field.getFieldValueList(''),
-          ).pipe(
-            map(transformValues),
-            switchMap(values =>
-              from(
-                test({
-                  config,
-                  texts: values.map(({ text }) => text),
-                }),
-              ).pipe(
-                map(result => ({
-                  originTexts: values,
-                  result,
-                  selection: sel,
-                })),
-                map(props => <ResultTable key={Date.now()} {...props} />),
-              ),
-            ),
+          return from(formatTest(sel!, mode, config)).pipe(
+            map(props => (
+              <ResultTable key={Date.now()} {...props} selection={sel!} />
+            )),
           );
         }),
       ),
@@ -80,37 +158,21 @@ export const Result = () => {
   );
 };
 
-const ResultTable: FC<{
-  result: TestResult;
-  selection: typeof selection$ extends Observable<infer T> ? T : never;
-  originTexts: { text: string; record_id: string; index: number }[];
-}> = ({ result: { result, config }, selection, originTexts }) => {
+const ResultTable: FC<FormatTestResult & { selection: SelectionInfo }> = ({
+  result,
+  config,
+  selection,
+}) => {
   const { t } = useTranslation();
-  const data = useMemo(
-    () =>
-      Object.entries(
-        groupBy(
-          result
-            .map((rulesResult, index) => ({
-              rulesResult,
-              ...originTexts[index],
-            }))
-            .filter(({ rulesResult }) => rulesResult.some(identity)),
-          'record_id',
-        ),
-      ).map(
-        ([recordId, items]) =>
-          ({ recordId, segments: sortBy(items, 'index') } as const),
-      ),
-    [result],
-  );
+  const refreshing = useObservableState(refreshing$, false);
+
   const columns = useMemo(
     () =>
       [
         {
-          title: t('Content'),
+          title: t('content'),
           dataIndex: 'segments',
-          render: (col, item) => (
+          render: (_, item) => (
             <div className="whitespace-pre-wrap break-all">
               {item.segments.map(segment => (
                 <SegmentRender
@@ -123,30 +185,53 @@ const ResultTable: FC<{
           ),
         },
         {
-          title: t('Actions'),
-          render: (col, item) => (
-            <>
+          title: t('actions'),
+          render: (_, item) => (
+            <div className="whitespace-nowrap">
               <Button
                 size="mini"
+                className="mr-2"
                 onClick={() =>
                   bitable.ui.showRecordDetailDialog({
-                    tableId: selection!.table.id,
+                    tableId: selection.table.id,
                     recordId: item.recordId,
-                    fieldIdList: [selection!.fieldId],
                   })
                 }
               >
-                {t('View')}
+                {t('view')}
               </Button>
-              <Button size="mini" type="primary">
-                {t('Fix')}
+              <Button
+                size="mini"
+                type="primary"
+                onClick={() => fixCells(selection, config, item.recordId)}
+              >
+                {t('fix')}
               </Button>
-            </>
+            </div>
           ),
         },
-      ] as ColumnProps<(typeof data)[number]>[],
+      ] as ColumnProps<FormatTestResult['result'][number]>[],
     [t],
   );
 
-  return <Table data={data} columns={columns} rowKey="recordId" />;
+  return (
+    <>
+      <div className="gap-2 flex justify-end mb-3">
+        <Button
+          onClick={() => refresh$.next(Date.now())}
+          loading={refreshing}
+          disabled={refreshing}
+        >
+          {t('refresh')}
+        </Button>
+        <Button
+          type="primary"
+          onClick={() => fixCells(selection, config, 'ALL')}
+        >
+          {t('fix_all')}
+        </Button>
+      </div>
+      <Table data={result} columns={columns} rowKey="recordId" />
+    </>
+  );
 };
