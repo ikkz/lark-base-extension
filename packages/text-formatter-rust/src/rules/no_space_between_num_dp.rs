@@ -1,6 +1,6 @@
 use super::*;
 
-pub(crate) fn build_rule() -> RegexRule {
+pub(crate) fn new() -> RegexRule {
     RegexRule::new(
         "no_space_between_num_dp",
         vec![r"\d+(?<h>\x20+)[°%]"],
@@ -14,7 +14,7 @@ mod tests {
 
     #[test]
     fn test_no_space_between_num_dp() {
-        let rule = build_rule();
+        let rule = new();
 
         // Test case 1: Input with space between number and degree symbol
         let input = "25 °";

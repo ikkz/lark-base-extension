@@ -17,14 +17,14 @@ pub(crate) fn build_rules(config: Config) -> Vec<Box<dyn Rule>> {
     };
 
     if config.space_between_ch_en.is_some_and(identity) {
-        register(Box::new(crate::rules::space_between_ch_en::build_rule()));
+        register(Box::new(crate::rules::space_between_ch_en::new()));
     }
     if config.no_space_between_num_dp.is_some_and(identity) {
-        register(Box::new(crate::rules::no_space_between_num_dp::build_rule()));
+        register(Box::new(crate::rules::no_space_between_num_dp::new()));
     }
     if config.uniform_punctuation.is_some_and(identity) {
         register(Box::new(
-            crate::rules::uniform_punctuation::UniformPunctuation,
+            crate::rules::uniform_punctuation::UniformPunctuation::new(),
         ));
     }
     if config
@@ -32,7 +32,7 @@ pub(crate) fn build_rules(config: Config) -> Vec<Box<dyn Rule>> {
         .is_some_and(identity)
     {
         register(Box::new(
-            crate::rules::no_space_around_full_width_punctuation::build_rule(),
+            crate::rules::no_space_around_full_width_punctuation::new(),
         ));
     }
     rules

@@ -25,7 +25,17 @@ lazy_static! {
     static ref CH_REGEX: regex::Regex = regex::Regex::new(r"[\u4e00-\u9fa5]").unwrap();
 }
 
-pub(crate) struct UniformPunctuation;
+#[derive(Clone)]
+pub(crate) struct UniformPunctuation {
+    ch_regex: regex::Regex,
+    en_test_regex: regex::Regex,
+}
+
+impl UniformPunctuation {
+    pub(crate) fn new() -> Self {
+        UniformPunctuation { ch_regex: CH_REGEX.clone(), }
+    }
+}
 
 impl Rule for UniformPunctuation {
     fn id(&self) -> &str {
@@ -34,8 +44,8 @@ impl Rule for UniformPunctuation {
 
     fn test(&self, text: &str) -> Option<Vec<(usize, usize)>> {
         vec_to_option(
-            if CH_REGEX.is_match(text) {
-                EN_PUNCTUATIONS_REGEX.find_iter(text)
+            if self.ch_regex.is_match(text) {
+                EN_PUNCTUATIONS_REGEX.find_iter(text) // fix
             } else {
                 CH_PUNCTUATIONS_REGEX.find_iter(text)
             }
@@ -46,7 +56,7 @@ impl Rule for UniformPunctuation {
 
     fn fix(&self, text: &str) -> String {
         if CH_REGEX.is_match(text) {
-            EN_PUNCTUATIONS_REGEX
+            EN_PUNCTUATIONS_REGEX // fix
                 .replace_all(text, |caps: &regex::Captures| {
                     PUNCTUATIONS
                         .iter()
@@ -69,6 +79,10 @@ impl Rule for UniformPunctuation {
                 .into()
         }
     }
+
+    fn clone(&self) -> Box<dyn Rule> {
+        Box::new(Clone::clone(self))
+    }
 }
 
 #[cfg(test)]
@@ -77,7 +91,7 @@ mod tests {
 
     #[test]
     fn test_uniform_punctuation_ch() {
-        let rule = UniformPunctuation;
+        let rule = UniformPunctuation::new();
         let text = "这是一段中文文本,包含英文标点符号.";
         assert_eq!(rule.test(text), Some(vec![(8, 9), (17, 18)]));
         assert_eq!(rule.fix(text), "这是一段中文文本，包含英文标点符号。");
@@ -85,7 +99,7 @@ mod tests {
 
     #[test]
     fn test_uniform_punctuation_en() {
-        let rule = UniformPunctuation;
+        let rule = UniformPunctuation::new();
         let text = "This is an English text， including Chinese punctuation marks。";
         assert_eq!(rule.test(text), Some(vec![(23, 24), (60, 61)]));
         assert_eq!(
@@ -96,7 +110,7 @@ mod tests {
 
     #[test]
     fn test_uniform_punctuation_mixed() {
-        let rule = UniformPunctuation;
+        let rule = UniformPunctuation::new();
         let text = "这是一段中文文本，包含English punctuation marks.";
         assert_eq!(rule.test(text), Some(vec![(36, 37)]));
         assert_eq!(

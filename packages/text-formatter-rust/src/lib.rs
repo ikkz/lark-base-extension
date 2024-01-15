@@ -1,22 +1,15 @@
 mod config;
 mod rules;
 mod utils;
+use std::borrow::Borrow;
+
 use crate::utils::set_panic_hook;
 
-#[cfg(feature = "parallel")]
+// #[cfg(feature = "parallel")]
 use rayon::prelude::*;
+use rules::Rule;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
-
-#[cfg(feature = "rayon")]
-fn iter(text_list: &[String]) -> impl ParallelIterator<Item = &String> {
-    text_list.par_iter()
-}
-
-#[cfg(not(feature = "rayon"))]
-fn iter(text_list: &[String]) -> impl Iterator<Item = &String> {
-    text_list.iter()
-}
 
 #[derive(Serialize, Deserialize)]
 struct Param {
@@ -35,19 +28,39 @@ pub fn test(param: &str) -> String {
     set_panic_hook();
     let Param { config, texts } = serde_json::from_str(param).unwrap();
     let rules = config::build_rules(config);
-    let result = serde_json::to_string(&TestResult {
-        config: rules.iter().map(|r| r.id().into()).collect::<Vec<_>>(),
-        result: iter(&texts)
-            .map(|text| {
-                rules
-                    .iter()
-                    .map(|rule| rule.test(&text))
-                    .collect::<Vec<_>>()
-            })
-            .collect::<Vec<_>>(),
-    })
-    .unwrap();
-    result
+    let config_list = rules.iter().map(|r| r.id().into()).collect::<Vec<_>>();
+    // #[cfg(feature = "rayon")]
+    {
+        return serde_json::to_string(&TestResult {
+            config: config_list,
+            result: texts.par_iter().fold(
+                || rules.iter().map(|rule| Rule::clone(rule.borrow())).collect::<Vec<_>>(),
+                |rules, text| {
+                    rules
+                        .iter()
+                        .map(|rule| rule.test(&text))
+                        .collect::<Vec<_>>()
+                },
+            ),
+        })
+        .unwrap();
+    }
+    #[cfg(not(feature = "rayon"))]
+    {
+        return serde_json::to_string(&TestResult {
+            config: config_list,
+            result: texts
+                .iter()
+                .map(|text| {
+                    rules
+                        .iter()
+                        .map(|rule| rule.test(&text))
+                        .collect::<Vec<_>>()
+                })
+                .collect::<Vec<_>>(),
+        })
+        .unwrap();
+    }
 }
 
 #[derive(Serialize, Deserialize)]
@@ -64,11 +77,14 @@ pub fn fix(param: &str) -> String {
     let result = serde_json::to_string(&FixResult {
         config: rules.iter().map(|r| r.id().into()).collect::<Vec<_>>(),
         result: iter(&texts)
-            .map(|text| {
-                rules
-                    .iter()
-                    .fold(text.clone(), |text, rule| rule.fix(&text))
-            })
+            .fold(
+                || rules.iter().map(|rule| Rule::clone(rule.borrow())),
+                |rules, texts| {
+                    rules
+                        .iter()
+                        .fold(text.clone(), |text, rule| rule.fix(&text))
+                },
+            )
             .collect::<Vec<_>>(),
     })
     .unwrap();

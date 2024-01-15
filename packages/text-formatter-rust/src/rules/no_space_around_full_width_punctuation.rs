@@ -2,7 +2,7 @@ use super::*;
 
 const PUNCTUATIONS: &str = "。、，：；“”‘’？！（）【】｛｝《》……—～";
 
-pub(crate) fn build_rule() -> RegexRule {
+pub(crate) fn new() -> RegexRule {
     RegexRule::new(
         "no_space_around_full_width_punctuation",
         vec![
@@ -22,7 +22,7 @@ mod tests {
 
     #[test]
     fn test_no_space_around_full_width_punctuation() {
-        let rule = build_rule();
+        let rule = new();
 
         // Test case 1: Punctuation followed by space
         let input1 = "Hello。 World";

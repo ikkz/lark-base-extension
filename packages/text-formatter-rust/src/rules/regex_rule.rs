@@ -2,6 +2,7 @@ use crate::utils::{byte_range_to_char_range, vec_to_option};
 
 use super::Rule;
 
+#[derive(Clone)]
 pub(crate) struct RegexRule {
     id: String,
     test: Vec<regex::Regex>,
@@ -55,5 +56,9 @@ impl Rule for RegexRule {
             result = regex.replace_all(&result, replacement).to_string();
         }
         result
+    }
+
+    fn clone(&self) -> Box<dyn Rule> {
+        Box::new(Clone::clone(self))
     }
 }

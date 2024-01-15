@@ -1,6 +1,6 @@
 use super::*;
 
-pub(crate) fn build_rule() ->RegexRule {
+pub(crate) fn new() ->RegexRule {
     RegexRule::new(
         "space_between_ch_en",
         vec![r"(?<h>[\u4e00-\u9fa5][a-zA-Z\d])", r"(?<h>[a-zA-Z\d][\u4e00-\u9fa5])"],
@@ -17,7 +17,7 @@ mod tests {
 
     #[test]
     fn test_space_between_ch_en() {
-        let rule = build_rule();
+        let rule = new();
 
         // Test case 1: Chinese character followed by English character
         let input = "你好world";
