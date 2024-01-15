@@ -1,4 +1,4 @@
-use crate::utils::{byte_range_to_char_range, vec_to_option};
+use crate::utils::{byte_range_to_char_range, prev_next_char, vec_to_option};
 
 use super::*;
 use lazy_static::*;
@@ -33,21 +33,43 @@ impl Rule for UniformPunctuation {
     }
 
     fn test(&self, text: &str) -> Option<Vec<(usize, usize)>> {
-        vec_to_option(
-            if CH_REGEX.is_match(text) {
-                EN_PUNCTUATIONS_REGEX.find_iter(text)
-            } else {
-                CH_PUNCTUATIONS_REGEX.find_iter(text)
-            }
-            .map(|m| byte_range_to_char_range(text, (m.start(), m.end())))
-            .collect::<Vec<(usize, usize)>>(),
-        )
+        vec_to_option(if CH_REGEX.is_match(text) {
+            EN_PUNCTUATIONS_REGEX
+                .find_iter(text)
+                .filter(|cap| {
+                    if cap.as_str() == "." {
+                        let (prev, next) =
+                            prev_next_char(text, utf8_slice::len(&text[0..cap.start()]));
+                        !(prev.is_some_and(|c| c.is_numeric() || c.eq(&'.'))
+                            || next.is_some_and(|c| c.is_numeric() || c.eq(&'.')))
+                    } else {
+                        true
+                    }
+                })
+                .map(|m| byte_range_to_char_range(text, (m.start(), m.end())))
+                .collect::<Vec<_>>()
+        } else {
+            CH_PUNCTUATIONS_REGEX
+                .find_iter(text)
+                .map(|m| byte_range_to_char_range(text, (m.start(), m.end())))
+                .collect::<Vec<_>>()
+        })
     }
 
     fn fix(&self, text: &str) -> String {
         if CH_REGEX.is_match(text) {
             EN_PUNCTUATIONS_REGEX
                 .replace_all(text, |caps: &regex::Captures| {
+                    let cap = caps.get(0).unwrap();
+                    if cap.as_str().eq(".") {
+                        let (prev, next) =
+                            prev_next_char(text, utf8_slice::len(&text[0..cap.start()]));
+                        if prev.is_some_and(|c| c.is_numeric() || c.eq(&'.'))
+                            || next.is_some_and(|c| c.is_numeric() || c.eq(&'.'))
+                        {
+                            return ".".to_string();
+                        }
+                    }
                     PUNCTUATIONS
                         .iter()
                         .find(|(_, ch)| *ch == caps[0].chars().next().unwrap())
@@ -103,5 +125,28 @@ mod tests {
             rule.fix(text),
             "这是一段中文文本，包含English punctuation marks。"
         );
+    }
+    #[test]
+    fn test_uniform_punctuation_ch_with_numbers() {
+        let rule = UniformPunctuation;
+        let text = "这是一段中文文本，包含数字1.2和3.4。";
+        assert_eq!(rule.test(text), None);
+        assert_eq!(rule.fix(text), "这是一段中文文本，包含数字1.2和3.4。");
+    }
+
+    #[test]
+    fn test_uniform_punctuation_ch_with_dot() {
+        let rule = UniformPunctuation;
+        let text = "这是一段中文文本，包含.符号。";
+        assert_eq!(rule.test(text), Some(vec![(11, 12)]));
+        assert_eq!(rule.fix(text), "这是一段中文文本，包含。符号。");
+    }
+
+    #[test]
+    fn test_uniform_punctuation_num_list() {
+        let rule = UniformPunctuation;
+        let text = "1. todo\n2. 中文\n3. English";
+        assert_eq!(rule.test(text), None);
+        assert_eq!(rule.fix(text), "1. todo\n2. 中文\n3. English");
     }
 }

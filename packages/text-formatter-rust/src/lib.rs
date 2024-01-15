@@ -3,20 +3,8 @@ mod rules;
 mod utils;
 use crate::utils::set_panic_hook;
 
-#[cfg(feature = "parallel")]
-use rayon::prelude::*;
 use serde::{Deserialize, Serialize};
 use wasm_bindgen::prelude::*;
-
-#[cfg(feature = "rayon")]
-fn iter(text_list: &[String]) -> impl ParallelIterator<Item = &String> {
-    text_list.par_iter()
-}
-
-#[cfg(not(feature = "rayon"))]
-fn iter(text_list: &[String]) -> impl Iterator<Item = &String> {
-    text_list.iter()
-}
 
 #[derive(Serialize, Deserialize)]
 struct Param {
@@ -37,7 +25,7 @@ pub fn test(param: &str) -> String {
     let rules = config::build_rules(config);
     let result = serde_json::to_string(&TestResult {
         config: rules.iter().map(|r| r.id().into()).collect::<Vec<_>>(),
-        result: iter(&texts)
+        result: texts.iter()
             .map(|text| {
                 rules
                     .iter()
@@ -63,7 +51,7 @@ pub fn fix(param: &str) -> String {
     let rules = config::build_rules(config);
     let result = serde_json::to_string(&FixResult {
         config: rules.iter().map(|r| r.id().into()).collect::<Vec<_>>(),
-        result: iter(&texts)
+        result: texts.iter()
             .map(|text| {
                 rules
                     .iter()

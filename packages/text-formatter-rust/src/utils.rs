@@ -24,6 +24,15 @@ pub(crate) fn byte_range_to_char_range(text: &str, (start, end): (usize, usize))
     (begin, begin + utf8_slice::len(&text[start..end]))
 }
 
+pub(crate) fn prev_next_char(text: &str, index: usize) -> (Option<char>, Option<char>) {
+    if index == 0 {
+        (None, text.chars().nth(1))
+    } else {
+        let chars = text.chars().skip(index - 1).take(3).collect::<Vec<_>>();
+        (chars.get(0).cloned(), chars.get(2).cloned())
+    }
+}
+
 #[wasm_bindgen]
 extern "C" {
     #[wasm_bindgen(js_namespace = console)]
