@@ -2,10 +2,15 @@ import { useObservable, useObservableState } from 'observable-hooks';
 import {
   BehaviorSubject,
   combineLatestWith,
+  concatMap,
+  delay,
   filter,
   from,
   map,
+  of,
+  pairwise,
   skip,
+  startWith,
   switchMap,
 } from 'rxjs';
 import {
@@ -15,13 +20,15 @@ import {
   IOpenSegmentType,
   bitable,
   IOpenCellValue,
+  ToastType,
 } from '@lark-base-open/js-sdk';
 import type { AsyncReturnType } from 'type-fest';
 import { FC, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import groupBy from 'lodash-es/groupBy';
 import sortBy from 'lodash-es/sortBy';
-import { identity } from 'lodash-es';
+import identity from 'lodash-es/identity';
+import chunk from 'lodash-es/chunk';
 import { Table, Button, Message } from '@arco-design/web-react';
 import { ColumnProps } from '@arco-design/web-react/es/Table';
 import { SegmentRender } from './segment-render';
@@ -119,18 +126,26 @@ async function fixCells(
     }
   });
   await Promise.all(
-    Object.keys(updateMap).map(recordId => {
-      if (updateMap[recordId]) {
-        const fieldValue = fieldValuesMap[recordId];
-        if (fieldValue) {
-          return field.setValue(recordId, fieldValue);
-        }
-      }
-      return Promise.resolve();
-    }),
+    chunk(
+      Object.keys(updateMap).filter(
+        recordId => updateMap[recordId] && fieldValuesMap[recordId],
+      ),
+      5000,
+    ).map(recordIds =>
+      table.setRecords(
+        recordIds.map(recordId => ({
+          recordId,
+          fields: { [fieldId]: fieldValuesMap[recordId]! },
+        })),
+      ),
+    ),
   );
   close();
   refresh$.next(Date.now());
+  bitable.ui.showToast({
+    toastType: ToastType.success,
+    message: i18n.t('fix_success'),
+  });
 }
 
 type FormatTestResult = AsyncReturnType<typeof formatTest>;
@@ -147,9 +162,7 @@ export const Result = () => {
         combineLatestWith(mode$, config$, refresh$),
         switchMap(([sel, mode, config]) => {
           return from(formatTest(sel!, mode, config)).pipe(
-            map(props => (
-              <ResultTable key={Date.now()} {...props} selection={sel!} />
-            )),
+            map(props => <ResultTable {...props} selection={sel!} />),
           );
         }),
       ),
@@ -164,7 +177,18 @@ const ResultTable: FC<FormatTestResult & { selection: SelectionInfo }> = ({
   selection,
 }) => {
   const { t } = useTranslation();
-  const refreshing = useObservableState(refreshing$, false);
+  const refreshing = useObservableState(
+    useObservable(() =>
+      refreshing$.pipe(
+        startWith(false),
+        pairwise(),
+        concatMap(([prev, curr]) => {
+          return prev && !curr ? of(false).pipe(delay(300)) : of(curr);
+        }),
+      ),
+    ),
+    false,
+  );
 
   const columns = useMemo(
     () =>
@@ -211,7 +235,7 @@ const ResultTable: FC<FormatTestResult & { selection: SelectionInfo }> = ({
           ),
         },
       ] as ColumnProps<FormatTestResult['result'][number]>[],
-    [t],
+    [t, config, selection],
   );
 
   return (

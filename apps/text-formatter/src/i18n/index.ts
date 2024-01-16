@@ -22,6 +22,7 @@ i18n.use(initReactI18next).init({
         cell: '选中单元格',
         field: '选中列',
         fixing: '修复中',
+        fix_success: '修复成功',
       },
     },
     en: {
@@ -44,6 +45,7 @@ i18n.use(initReactI18next).init({
         cell: 'Selected cell',
         field: 'Selected column',
         fixing: 'Fixing',
+        fix_success: 'Fix success',
       },
     },
   },

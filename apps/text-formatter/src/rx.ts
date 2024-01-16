@@ -13,6 +13,7 @@ import {
   catchError,
   of,
   share,
+  EMPTY,
 } from 'rxjs';
 import {
   bitable,
@@ -22,6 +23,7 @@ import {
 } from '@lark-base-open/js-sdk';
 import isEqual from 'lodash-es/isEqual';
 import pick from 'lodash-es/pick';
+import isEmpty from 'lodash-es/isEmpty';
 import { Config, DEFAULT_CONFIG } from './api';
 
 export type Mode = 'cell' | 'field';
@@ -30,7 +32,7 @@ export const mode$ = new BehaviorSubject<Mode>('cell');
 bitable.bridge
   .getData('mode')
   .then(mode => {
-    if (mode) {
+    if (mode && !isEmpty(mode)) {
       mode$.next(mode as Mode);
     }
   })
@@ -45,7 +47,7 @@ export const config$ = new BehaviorSubject<Config>(DEFAULT_CONFIG);
 bitable.bridge
   .getData('config')
   .then(config => {
-    if (config) {
+    if (config && !isEmpty(config)) {
       config$.next(config as Config);
     }
   })
@@ -107,9 +109,8 @@ export const selection$ = userSelection$.pipe(
                         fieldId,
                         recordId,
                       })),
-                      startWith(null),
                     )
-                  : of(null);
+                  : EMPTY;
               }),
               startWith(null),
             ),
