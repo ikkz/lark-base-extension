@@ -6,5 +6,16 @@ export default defineConfig({
   runtime: {
     router: true,
   },
+  source: {
+    mainEntryName: 'index',
+  },
+  output: {
+    distPath: {
+      html: '',
+    },
+  },
+  html: {
+    disableHtmlFolder: true,
+  },
   plugins: [appTools(), tailwindcssPlugin()],
 });
