@@ -1,9 +1,12 @@
 import { expose, proxy } from 'comlink';
+import init, { test, fix } from 'text-formatter-rust/pkg/text_formatter_rust';
 
 const loadModule = async () => {
-  const module = await import('text-formatter-rust/pkg/text_formatter_rust');
-  await module.default();
-  return proxy(module);
+  await init();
+  return proxy({
+    test,
+    fix,
+  });
 };
 
 expose({
