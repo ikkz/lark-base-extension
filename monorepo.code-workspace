@@ -1,12 +1,8 @@
 {
   "folders": [
     {
-      "name": "text-formatter-rust",
-      "path": "packages/text-formatter-rust"
-    },
-    {
-      "name": "text-formatter",
-      "path": "apps/text-formatter/"
+      "name": "url-checker",
+      "path": "apps/url-checker"
     },
     {
       "name": "monorepo",
