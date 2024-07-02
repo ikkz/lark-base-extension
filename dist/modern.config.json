@@ -58,7 +58,7 @@
   },
   "output": {
     "distPath": {
-      "root": "../../deploy/text-formatter",
+      "root": "../../dist",
       "js": "static/js",
       "css": "static/css",
       "svg": "static/svg",
@@ -224,7 +224,7 @@
     "output": {
       "distPath": {
         "html": "",
-        "root": "../../deploy/text-formatter"
+        "root": "../../dist"
       }
     },
     "html": {
