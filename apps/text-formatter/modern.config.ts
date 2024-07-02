@@ -12,6 +12,7 @@ export default defineConfig({
   output: {
     distPath: {
       html: '',
+      root: '../../deploy/text-formatter',
     },
   },
   html: {
