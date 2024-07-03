@@ -3,6 +3,7 @@
   "name": "monorepo",
   "scripts": {
     "build": "pnpm -r --sort run build",
+    "serve": "pnpm run --filter text-formatter serve",
     "new": "modern new",
     "reset": "modern clear",
     "change": "modern change",

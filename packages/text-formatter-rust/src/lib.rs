@@ -25,7 +25,8 @@ pub fn test(param: &str) -> String {
     let rules = config::build_rules(config);
     let result = serde_json::to_string(&TestResult {
         config: rules.iter().map(|r| r.id().into()).collect::<Vec<_>>(),
-        result: texts.iter()
+        result: texts
+            .iter()
             .map(|text| {
                 rules
                     .iter()
@@ -51,7 +52,8 @@ pub fn fix(param: &str) -> String {
     let rules = config::build_rules(config);
     let result = serde_json::to_string(&FixResult {
         config: rules.iter().map(|r| r.id().into()).collect::<Vec<_>>(),
-        result: texts.iter()
+        result: texts
+            .iter()
             .map(|text| {
                 rules
                     .iter()
@@ -62,9 +64,6 @@ pub fn fix(param: &str) -> String {
     .unwrap();
     result
 }
-
-#[cfg(feature = "parallel")]
-pub use wasm_bindgen_rayon::init_thread_pool;
 
 #[cfg(test)]
 mod tests {

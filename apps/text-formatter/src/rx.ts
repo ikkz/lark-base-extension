@@ -25,6 +25,7 @@ import isEqual from 'lodash-es/isEqual';
 import pick from 'lodash-es/pick';
 import isEmpty from 'lodash-es/isEmpty';
 import { Config, DEFAULT_CONFIG } from './api';
+import i18n from './i18n';
 
 export type Mode = 'cell' | 'field';
 
@@ -135,7 +136,7 @@ selection$.subscribe(cell => {
   if (cell && cell.fieldType !== FieldType.Text) {
     bitable.ui.showToast({
       toastType: ToastType.warning,
-      message: '请选择文本类型的字段',
+      message: i18n.t('text_field_only'),
     });
   }
 });

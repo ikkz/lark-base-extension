@@ -1,0 +1,12 @@
+modules = ["rust-stable", "web", "bash", "nodejs-20"]
+run = "pnpm build && pnpm serve"
+
+[nix]
+channel = "stable-23_11"
+
+[deployment]
+run = ["sh", "-c", "pnpm build"]
+
+[[ports]]
+localPort = 8080
+externalPort = 80

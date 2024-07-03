@@ -2,7 +2,7 @@
   "name": "text-formatter-rust",
   "version": "1.0.0",
   "scripts": {
-    "build": "RUSTC_BOOTSTRAP=1 pnpm wasm-pack build --target web"
+    "build": "pnpm wasm-pack build --target web"
   },
   "devDependencies": {
     "npm-run-all": "^4.1.5",
